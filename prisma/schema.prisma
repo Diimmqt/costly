@@ -41,6 +41,18 @@ enum StockMovementType {
   ADJUSTMENT
 }
 
+enum ProductCategory {
+  FOOD
+  BEVERAGE
+  SNACK
+  OTHER
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Material {
   id              String           @id @default(uuid()) @db.Uuid
   code            String           @unique @db.VarChar(50)
@@ -96,4 +108,23 @@ model UnitConversion {
   @@unique([fromUnit, toUnit, materialId])
   @@index([materialId])
   @@map("unit_conversions")
+}
+
+model Product {
+  id           String          @id @default(uuid()) @db.Uuid
+  code         String          @unique @db.VarChar(50)
+  name         String          @db.VarChar(150)
+  category     ProductCategory
+  description  String?         @db.Text
+  sellingPrice Decimal?        @map("selling_price") @db.Decimal(15, 2)
+  status       ProductStatus   @default(ACTIVE)
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@index([category])
+  @@index([status])
+  @@index([isActive])
+  @@map("products")
 }
