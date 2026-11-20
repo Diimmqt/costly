@@ -54,23 +54,33 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum AdditionalCostCategory {
+  LABOR
+  ELECTRICITY
+  GAS
+  WATER
+  OPERATIONAL
+  OTHER
+}
+
 model Material {
-  id              String           @id @default(uuid()) @db.Uuid
-  code            String           @unique @db.VarChar(50)
-  name            String           @db.VarChar(150)
-  category        MaterialCategory
-  unit            MaterialUnit
-  purchasePrice   Decimal          @map("purchase_price") @db.Decimal(15, 2)
-  stock           Decimal          @default(0) @db.Decimal(15, 3)
-  minStock        Decimal          @default(0) @map("min_stock") @db.Decimal(15, 3)
-  stockStatus     StockStatus      @default(OUT_OF_STOCK) @map("stock_status")
-  isLowStock      Boolean          @default(true) @map("is_low_stock")
-  description     String?          @db.Text
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  stockMovements  StockMovement[]
-  unitConversions UnitConversion[]
-  recipeItems     RecipeItem[]
+  id                   String                @id @default(uuid()) @db.Uuid
+  code                 String                @unique @db.VarChar(50)
+  name                 String                @db.VarChar(150)
+  category             MaterialCategory
+  unit                 MaterialUnit
+  purchasePrice        Decimal               @map("purchase_price") @db.Decimal(15, 2)
+  stock                Decimal               @default(0) @db.Decimal(15, 3)
+  minStock             Decimal               @default(0) @map("min_stock") @db.Decimal(15, 3)
+  stockStatus          StockStatus           @default(OUT_OF_STOCK) @map("stock_status")
+  isLowStock           Boolean               @default(true) @map("is_low_stock")
+  description          String?               @db.Text
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  stockMovements       StockMovement[]
+  unitConversions      UnitConversion[]
+  recipeItems          RecipeItem[]
+  hppMaterialSnapshots HppMaterialSnapshot[]
 
   @@index([name])
   @@index([category])
@@ -113,17 +123,18 @@ model UnitConversion {
 }
 
 model Product {
-  id           String          @id @default(uuid()) @db.Uuid
-  code         String          @unique @db.VarChar(50)
-  name         String          @db.VarChar(150)
-  category     ProductCategory
-  description  String?         @db.Text
-  sellingPrice Decimal?        @map("selling_price") @db.Decimal(15, 2)
-  status       ProductStatus   @default(ACTIVE)
-  isActive     Boolean         @default(true) @map("is_active")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
-  recipe       Recipe?
+  id              String           @id @default(uuid()) @db.Uuid
+  code            String           @unique @db.VarChar(50)
+  name            String           @db.VarChar(150)
+  category        ProductCategory
+  description     String?          @db.Text
+  sellingPrice    Decimal?         @map("selling_price") @db.Decimal(15, 2)
+  status          ProductStatus    @default(ACTIVE)
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  recipe          Recipe?
+  hppCalculations HppCalculation[]
 
   @@index([name])
   @@index([category])
@@ -133,17 +144,18 @@ model Product {
 }
 
 model Recipe {
-  id            String       @id @default(uuid()) @db.Uuid
-  productId     String       @unique @map("product_id") @db.Uuid
-  product       Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
-  name          String?      @db.VarChar(150)
-  notes         String?      @db.Text
-  yieldQuantity Decimal      @default(1) @map("yield_quantity") @db.Decimal(15, 3)
-  yieldUnit     String       @default("portion") @map("yield_unit") @db.VarChar(50)
-  isActive      Boolean      @default(true) @map("is_active")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
-  items         RecipeItem[]
+  id              String           @id @default(uuid()) @db.Uuid
+  productId       String           @unique @map("product_id") @db.Uuid
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  name            String?          @db.VarChar(150)
+  notes           String?          @db.Text
+  yieldQuantity   Decimal          @default(1) @map("yield_quantity") @db.Decimal(15, 3)
+  yieldUnit       String           @default("portion") @map("yield_unit") @db.VarChar(50)
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  items           RecipeItem[]
+  hppCalculations HppCalculation[]
 
   @@index([isActive])
   @@map("recipes")
@@ -167,4 +179,73 @@ model RecipeItem {
   @@index([recipeId])
   @@index([materialId])
   @@map("recipe_items")
+}
+
+model HppCalculation {
+  id                  String                @id @default(uuid()) @db.Uuid
+  productId           String                @map("product_id") @db.Uuid
+  product             Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
+  recipeId            String                @map("recipe_id") @db.Uuid
+  recipe              Recipe                @relation(fields: [recipeId], references: [id], onDelete: Restrict)
+  productCode         String                @map("product_code") @db.VarChar(50)
+  productName         String                @map("product_name") @db.VarChar(150)
+  productCategory     ProductCategory       @map("product_category")
+  productSellingPrice Decimal?              @map("product_selling_price") @db.Decimal(15, 2)
+  recipeName          String?               @map("recipe_name") @db.VarChar(150)
+  recipeYieldQuantity Decimal               @map("recipe_yield_quantity") @db.Decimal(15, 3)
+  recipeYieldUnit     String                @map("recipe_yield_unit") @db.VarChar(50)
+  productionQuantity  Decimal               @map("production_quantity") @db.Decimal(15, 3)
+  totalMaterialCost   Decimal               @map("total_material_cost") @db.Decimal(15, 2)
+  totalAdditionalCost Decimal               @map("total_additional_cost") @db.Decimal(15, 2)
+  totalHpp            Decimal               @map("total_hpp") @db.Decimal(15, 2)
+  hppPerUnit          Decimal               @map("hpp_per_unit") @db.Decimal(15, 2)
+  roundingRule        String                @default("ROUND_HALF_UP_2") @map("rounding_rule") @db.VarChar(50)
+  notes               String?               @db.Text
+  calculatedAt        DateTime              @default(now()) @map("calculated_at")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  materialSnapshots   HppMaterialSnapshot[]
+  additionalCosts     HppAdditionalCost[]
+
+  @@index([productId, calculatedAt(sort: Desc)])
+  @@index([recipeId])
+  @@index([calculatedAt(sort: Desc)])
+  @@map("hpp_calculations")
+}
+
+model HppMaterialSnapshot {
+  id               String           @id @default(uuid()) @db.Uuid
+  hppCalculationId String           @map("hpp_calculation_id") @db.Uuid
+  hppCalculation   HppCalculation   @relation(fields: [hppCalculationId], references: [id], onDelete: Cascade)
+  materialId       String?          @map("material_id") @db.Uuid
+  material         Material?        @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  materialCode     String           @map("material_code") @db.VarChar(50)
+  materialName     String           @map("material_name") @db.VarChar(150)
+  materialCategory MaterialCategory @map("material_category")
+  usageQuantity    Decimal          @map("usage_quantity") @db.Decimal(15, 3)
+  usageUnit        MaterialUnit     @map("usage_unit")
+  baseQuantity     Decimal          @map("base_quantity") @db.Decimal(18, 6)
+  baseUnit         MaterialUnit     @map("base_unit")
+  unitPrice        Decimal          @map("unit_price") @db.Decimal(15, 2)
+  subtotalCost     Decimal          @map("subtotal_cost") @db.Decimal(15, 2)
+  notes            String?          @db.Text
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  @@index([hppCalculationId])
+  @@index([materialId])
+  @@map("hpp_material_snapshots")
+}
+
+model HppAdditionalCost {
+  id               String                 @id @default(uuid()) @db.Uuid
+  hppCalculationId String                 @map("hpp_calculation_id") @db.Uuid
+  hppCalculation   HppCalculation         @relation(fields: [hppCalculationId], references: [id], onDelete: Cascade)
+  category         AdditionalCostCategory @default(OTHER)
+  name             String                 @db.VarChar(150)
+  amount           Decimal                @db.Decimal(15, 2)
+  notes            String?                @db.Text
+  createdAt        DateTime               @default(now()) @map("created_at")
+
+  @@index([hppCalculationId])
+  @@index([category])
+  @@map("hpp_additional_costs")
 }
